@@ -9,7 +9,7 @@
 
 
 
-short int IR_ground[GROUND_SENSORS_COUNT];
+
 
 int State =0;
 
@@ -26,17 +26,17 @@ void follower(){
     enable_led(2);
     enable_led(3);
 
+    short int IR_ground[GROUND_SENSORS_COUNT];
     get_ground(IR_ground);
 
-    double gsRight = ((3.0*IR_ground[GS_LEFT]+2.0*IR_ground[GS_CENTER]+1.0*IR_ground[GS_RIGHT])/(6.0));
-    double gsLeft = ((1.0*IR_ground[GS_LEFT]+2.0*IR_ground[GS_CENTER]+3.0*IR_ground[GS_RIGHT])/(6.0));
+    double gsRight = ((10.0*IR_ground[GS_LEFT]+2.0*IR_ground[GS_CENTER]+0.0*IR_ground[GS_RIGHT])/(12.0));
+    double gsLeft = ((0.0*IR_ground[GS_LEFT]+2.0*IR_ground[GS_CENTER]+10.0*IR_ground[GS_RIGHT])/(12.0));
 
+    double dsRight = (NORM_SPEED * gsRight) / 800;
+    double dsLeft = (NORM_SPEED * gsLeft) / 800;
 
-    double dsRight = (NORM_SPEED * gsRight) / 50;
-    double dsLeft = (NORM_SPEED * gsLeft) / 50;
-
-    double speedRight = bounded_speed(NORM_SPEED + dsRight);
-    double speedLeft = bounded_speed(NORM_SPEED + dsLeft);
+    double speedRight = bounded_speed(NORM_SPEED - dsRight);
+    double speedLeft = bounded_speed(NORM_SPEED - dsLeft);
 
     set_speed(speedLeft, speedRight);
 
@@ -65,15 +65,9 @@ void explorer(){
 }
 
 void robot_loop() {
-    for (int step=0; step<MAXSTEPS; step++)  {
-
-        robot_go_on();
-        if(State==0){
-            explorer();
-        } else {
-            follower();
-        }
-    }
+    do{
+        follower();
+    } while (robot_go_on());
         cleanup_robot();
     }
 
