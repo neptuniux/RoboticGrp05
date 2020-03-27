@@ -37,7 +37,7 @@ double a = 1, b = 5, c = 5, d = 0;
 int STATE = LOVER;
 int WALL = EMPTY;
 int ANGLE = 0;
-char Direction;
+char direction;
 int counter = 0;
 int rand_int;
 
@@ -89,22 +89,24 @@ void robot_loop() {
         loop_counter++;
 
         get_prox_calibrated(prox_values);
-        double prox_right = (a * prox_values[0] + b * prox_values[1] + c * prox_values[2] + d * prox_values[3]) / (a+b+c+d);
-        double prox_left = (a * prox_values[7] + b * prox_values[6] + c * prox_values[5] + d * prox_values[4]) / (a+b+c+d);
-        double ds_right = (NORM_SPEED * prox_right) / MAX_PROX;
-        double ds_left = (NORM_SPEED * prox_left) / MAX_PROX;
-        double speed_right = bounded_speed(NORM_SPEED - ds_right);
-        double speed_left = bounded_speed(NORM_SPEED - ds_left);
+
         if(STATE == LOVER && WALL == EMPTY){
+          double prox_right = (a * prox_values[0] + b * prox_values[1] + c * prox_values[2] + d * prox_values[3]) / (a+b+c+d);
+          double prox_left = (a * prox_values[7] + b * prox_values[6] + c * prox_values[5] + d * prox_values[4]) / (a+b+c+d);
+          double ds_right = (NORM_SPEED * prox_right) / MAX_PROX;
+          double ds_left = (NORM_SPEED * prox_left) / MAX_PROX;
+          double speed_right = bounded_speed(NORM_SPEED - ds_right);
+          double speed_left = bounded_speed(NORM_SPEED - ds_left);
+          // Reached equilibrium
           if (speed_right < 0.1 && speed_left < 0.1) {
             WALL = FOUND;
-            Direction = (random_int() == 0) ? RIGHT : LEFT;
+            direction = (random_int() == 0) ? RIGHT : LEFT;
           } else{
             lover(speed_left, speed_right);
           }
         }
         else if(STATE == LOVER && WALL == FOUND){
-          if (Direction == RIGHT) {
+          if (direction == RIGHT) {
             if (counter <= 17) {
               clockwise();
               counter++;
@@ -113,7 +115,7 @@ void robot_loop() {
               WALL = EMPTY;
               counter = 0;
             }
-          } else if (Direction == LEFT) {
+          } else if (direction == LEFT) {
             if (counter <= 17) {
               anticlockwise();
               counter++;
@@ -127,7 +129,7 @@ void robot_loop() {
         else if(STATE == FOLLOW) {
           //If a wall has been found turn in the current direction
           if (WALL == FOUND) {
-            if (Direction == RIGHT) {
+            if (direction == RIGHT) {
               if (counter < 17) {
                 clockwise();
                 counter++;
@@ -136,7 +138,7 @@ void robot_loop() {
                 WALL = EMPTY;
                 counter = 0;
               }
-            } else if (Direction == LEFT) {
+            } else if (direction == LEFT) {
               if (counter < 17) {
                 anticlockwise();
                 counter++;
@@ -149,18 +151,19 @@ void robot_loop() {
           }
           //If there is no wall in front register when one is found
           if (WALL == EMPTY) {
-            if ((prox_values[0] > (PID_MAX_DS-20)) && (prox_values[7] > (PID_MAX_DS))) {
+            if ((prox_values[0] > (PID_WALL_FOLLOW_TARGET)) && (prox_values[7] > (PID_WALL_FOLLOW_TARGET))) {
               WALL = FOUND;
             }
 /////////////////////////////// Follow the wall and register logs /////////////////////////////////////////////////////////////////////////////
-          double a = 1, b = 5, c = 5, d = 2;
+          double a = 0, b = 5, c = 5, d = 0;
           double prox_right = (a * prox_values[0] + b * prox_values[1] + c * prox_values[2] + d * prox_values[3]) / (a+b+c+d);
           double prox_left = (a * prox_values[7] + b * prox_values[6] + c * prox_values[5] + d * prox_values[4]) / (a+b+c+d);
+          // if no wall on left or right, register needs to turn
           if (prox_right < PID_WALL_FOLLOW_TARGET/3 || prox_left < PID_WALL_FOLLOW_TARGET/3) {
             ANGLE = 1;
           }
           //compute PID response according to IR sensor value
-          if (Direction == RIGHT){
+          if (direction == RIGHT){
             if (ANGLE == 1) {
               if (counter <= 30) {
                 set_speed(NORM_SPEED, 0.2*NORM_SPEED);
@@ -179,7 +182,7 @@ void robot_loop() {
             led_on(LEFT);
             set_speed(bounded_speed(speed_left), bounded_speed(speed_right));
 
-          } else if (Direction == LEFT){
+          } else if (direction == LEFT){
             if (ANGLE == 1) {
               if (counter <= 30) {
                 set_speed(0.2*NORM_SPEED, NORM_SPEED);
