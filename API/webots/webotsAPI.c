@@ -432,12 +432,6 @@ void get_microphones(short int *soundlevels) {
 
 
 
-
-
-
-
-
-
 // ///////////////////
 // Communication
 
@@ -475,13 +469,9 @@ void receive_msg(char* buffer) {
 }
 
 int get_robot_ID() {
-    int a, b, c, d;
-    // parse ip address
-    if (sscanf(wb_robot_get_name(), "%i.%i.%i.%i",&a,&b,&c,&d) < 4) {
-        printf("please provide a valid ip\n");
-        return -1;
-    }
-    else return d;
+    int r;
+    sscanf(wb_robot_get_name(),"%i",&r);
+    return r;
 }
 
 
