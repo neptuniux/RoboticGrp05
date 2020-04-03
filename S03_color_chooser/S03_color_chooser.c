@@ -12,10 +12,11 @@
 #define EXPLORER 2
 #define AVOID 3
 
+#define NONE 0
 #define RED 1
 #define GREEN 2
 #define BLUE 3
-#define WHITE 0
+#define WHITE 4
 #define PIXEL_THRESHOLD 600
 
 #define COUNT_EXP 15
@@ -83,14 +84,16 @@ void robot_loop() {
                 } else if (wall_color == WHITE) {
                   led_off();
                   printf("Wall is white\n");
+                } else if (wall_color == NONE) {
+                  led_on(NONE);
+                  printf("Unknown\n");
                 }
                 counter++;
               }
 
             }
         } else if (state == EXPLORER){
-            //if ((abs(prox_right) > THRESH_PROX_HI) || (abs(prox_left) > THRESH_PROX_HI))
-                counter_expl++;
+            counter_expl++;
         } else if (state == AVOID){
             if ((abs(prox_right) < THRESH_PROX_LO) && (abs(prox_left) < THRESH_PROX_LO)) {
                 counter_expl++;
@@ -103,8 +106,6 @@ void robot_loop() {
               state = LOVER;
               counter_wall = 0;
               counter_obstacle = 0;
-              /*for (int i=0; i<LED_COUNT; i++)
-                toggle_led(i);*/
             } else if (counter_expl > COUNT_EXP) {
               state = AVOID;
               counter_expl = 0;
@@ -118,8 +119,6 @@ void robot_loop() {
               counter_expl = 0;
               counter_obstacle = 0;
               state = AVOID;
-              /*for (int i=0; i<LED_COUNT; i++)
-                toggle_led(i);*/
         }
 
 
@@ -147,7 +146,7 @@ int color(){
   int redpx = 0;
   int greenpx = 0;
   int bluepx = 0;
-  //get_camera(red, green, blue);
+  get_camera(red, green, blue);
   for (int n = 55; n < 64; n++) {
     for (int m = 0; m < CAMERA_WIDTH; m++) {
       int redpixel = (int) red[n * CAMERA_WIDTH + m];
@@ -171,8 +170,8 @@ int color(){
     return GREEN;
   } else if (bluepx > redpx && bluepx > greenpx) {
     return BLUE;
-  } else if(redpx == greenpx == bluepx) {
-    return 0;
+  } else if(redpx == greenpx && redpx == bluepx && greenpx == bluepx) {
+    return WHITE;
   }
   /*if (redpx > PIXEL_THRESHOLD && greenpx < redpx && bluepx < redpx) {
     return RED;
@@ -183,7 +182,7 @@ int color(){
   } else if(redpx > 1000 && greenpx > 1000 && bluepx > 1000) {
     return 0;
   }*/
-  return 0;
+  return NONE;
 }
 
 void led_on(int color){
@@ -206,6 +205,11 @@ void led_on(int color){
     disable_rgbled(2);
     disable_rgbled(3);
     break;
+    case 4:
+    enable_rgbled(0, 0x0000ff);
+    enable_rgbled(1, 0x00ff00);
+    enable_rgbled(2, 0xff0000);
+    enable_rgbled(3, 0x0000ff);
   }
 }
 
