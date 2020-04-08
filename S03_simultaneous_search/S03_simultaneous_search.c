@@ -1,7 +1,3 @@
-//
-// Created by daniel on 02.04.20.
-//
-
 
 #define SIMULATION 1
 
@@ -18,13 +14,11 @@ void explorer(), lover(), stop();
 #define LOVER 1
 #define EXPLORER 2
 //#define MSG_LENGTH 5
-#define NB_ROBOT 4    //MUST match number of robots on the field. Robots MUST be named starting from 1
+#define NB_ROBOT 3    //MUST match number of robots on the field. Robots MUST be named starting from 1
 
-// control board, i.e varaibles that control the transitions
+// control board, i.e variables that control the transitions
 int robot[NB_ROBOT];
 int robot_count=0;
-int init = 1;
-int EQ = 0;
 int ack = 0;
 int go = 0;
 int sent = 0;
@@ -59,28 +53,22 @@ void robot_setup() {
 void robot_loop() {
     int id = get_robot_ID();
     short int prox_values[8];
-    int init = 1;
-    int EQ = 0;
-    int ack = 0;
-    int go = 0;
-    int sent = 0;
 
     while (robot_go_on()) {
       //controlles that robot_count doesn't go over the array size
       if(robot_count >= NB_ROBOT){
         robot_count = 0;
       }
+      //printf("ID = %d, go = %d\n",id, go);
       receive_msg(rcv);
       int rcv_id = rcv[0]- 48;
       if (rcv_id <= NB_ROBOT){
         robot[robot_count] = rcv_id;
         robot_count++;
+
       } else if (strcmp(rcv,"go")==0){
+      //printf("go\n");
         go=1;
-        init = 0;
-      }else if (strcmp(rcv,"EQ")==0){
-        EQ = 1;
-        robot_count++;
       }else if (sent == 1) {
         sent = 0;
         robot[robot_count] = id;
@@ -107,49 +95,44 @@ void robot_loop() {
             }
 
         } else if (STATE == LOVER) {
-            if ((prox_right > 80.0 || prox_left > 80.0) && init == 1) {
-              for(int i = 0; i< NB_ROBOT; i++){
-                if (robot[i] > 0){
-                  ack++;
+            if (speed_right < 0.0 && speed_left < 0.0) {
+                for(int i = 0; i< NB_ROBOT; i++){
+                  if (robot[i] > 0){
+                    ack++;
+                  }
                 }
-              }
-              if (ack == NB_ROBOT - 1) {
-                stop();
-                sprintf(tmp, "%d", id);
-                sprintf(tmp2, "%s", "go");
-                send_msg(tmp);
-                send_msg(tmp2);
-                sent = 1;
-                init = 0;
+                if (ack == NB_ROBOT - 1) {
+                  printf("plop\n");
+                  sprintf(tmp, "%d", id);
+                  sprintf(tmp2, "%s", "go");
+                  send_msg(tmp);
+                  send_msg(tmp2);
+                  sent = 1;
+                  go = 1;
+                  
+                  stop();
               }else {
-              sprintf(tmp, "%d", id);
-              send_msg(tmp);
-              sent = 1;
-              init = 0;
-              stop();
+                sprintf(tmp, "%d", id);
+                send_msg(tmp);
+                sent = 1;
+                stop();
               }
-            } else if (speed_right < 0.0 && speed_left < 0.0) {
-              sprintf(tmp2, "%s", "EQ");
-              send_msg(tmp2);
-              EQ = 0;
-              stop();
-              robot_count++;
             } else {
                 lover(speed_left, speed_right);
             }
         } else if(STATE == STOP){
-          if(go == 1 && robot[0] == id){
-            lover(speed_left, speed_right);
-            go = 0;
+        for (int i = 0; i < 1; i++){
+          //printf("ID %d, go %d\n", id , go);
           }
-          else if(EQ == 1){
-            if (robot_count < (NB_ROBOT - 1)) {
-              if (robot[robot_count + 1] == id) {
-                explorer(speed_left, speed_right);
-              }
-            } else if(robot_count == (NB_ROBOT - 1) && robot[0] == id){
-              explorer(speed_left, speed_right);
+          if(go == 1){
+            robot_count = 0;
+            ack = 0;
+            go = 0;
+            for (int r = 0; r < NB_ROBOT; r++) {
+              robot[r] = 0;
             }
+            explorer(speed_left, speed_right);
+            //printf("ID = %d\n", id);
           }
         }
       }
