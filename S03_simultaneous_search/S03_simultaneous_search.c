@@ -109,7 +109,7 @@ void robot_loop() {
                   send_msg(tmp2);
                   sent = 1;
                   go = 1;
-                  
+
                   stop();
               }else {
                 sprintf(tmp, "%d", id);
