@@ -15,7 +15,7 @@
 #define PIXEL_THRESHOLD 600
 
 int color();
-void led_on(int), led_off();
+void led_on(int), led_off(), init_rgbled();
 
 void robot_setup() {
     init_robot();
@@ -54,7 +54,7 @@ void robot_loop() {
               led_on(NONE);
               printf("Unknown\n");
             }
-            
+
           }
           count = 0;
         }
@@ -119,37 +119,34 @@ int color(){
   } else if(redpx == greenpx && redpx == bluepx && greenpx == bluepx) {
     return WHITE;
   }
-  /*if (redpx > PIXEL_THRESHOLD && greenpx < redpx && bluepx < redpx) {
-    return RED;
-  } else if (redpx <greenpx && greenpx > PIXEL_THRESHOLD && bluepx < greenpx) {
-    return GREEN;
-  } else if (redpx < bluepx && greenpx < bluepx && bluepx > PIXEL_THRESHOLD) {
-    return BLUE;
-  } else if(redpx > 1000 && greenpx > 1000 && bluepx > 1000) {
-    return 0;
-  }*/
   return NONE;
 }
 
 void led_on(int color){
   switch (color) {
     case 1:
-    disable_rgbled(0);
-    disable_rgbled(1);
-    enable_rgbled(2, 0xff0000);
-    enable_rgbled(3, 0xff0000);
+    for(int i = 0; i < 4; i++){
+      disable_rgbled(i);
+      enable_rgbled(i,0xff0000);
+      disable_led(i);
+    }
+    enable_led(3);
     break;
     case 2:
-    disable_rgbled(0);
-    enable_rgbled(1, 0x00ff00);
-    enable_rgbled(2, 0x00ff00);
-    disable_rgbled(3);
+    for(int i = 0; i < 4; i++){
+      disable_rgbled(i);
+      enable_rgbled(i,0x00ff00);
+      disable_led(i);
+    }
+    enable_led(2);
     break;
     case 3:
-    enable_rgbled(0, 0x0000ff);
-    enable_rgbled(1, 0x0000ff);
-    disable_rgbled(2);
-    disable_rgbled(3);
+    for(int i = 0; i < 4; i++){
+      disable_rgbled(i);
+      enable_rgbled(i,0x0000ff);
+      disable_led(i);
+    }
+    enable_led(1);
     break;
     case 4:
     enable_rgbled(0, 0x0000ff);
@@ -160,8 +157,8 @@ void led_on(int color){
 }
 
 void led_off(){
-  disable_rgbled(0);
-  disable_rgbled(1);
-  disable_rgbled(2);
-  disable_rgbled(3);
+  for(int i = 0; i < 4; i++){
+    disable_rgbled(i);
+    disable_led(i);
+  }
 }
