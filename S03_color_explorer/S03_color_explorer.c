@@ -41,27 +41,18 @@ void robot_loop() {
             switch (wall_color) {
                 case RED:
                     led_on(RED);
-                    printf("Wall is red\n");
                     break;
-
                 case GREEN:
                     led_on(GREEN);
-                    printf("Wall is green\n");
                     break;
-
                 case BLUE:
                     led_on(BLUE);
-                    printf("Wall is blue\n");
                     break;
-
                 case WHITE:
                     led_off();
-                    printf("Wall is white\n");
                     break;
-
                 default:
                     led_on(NONE);
-                    printf("Unknown\n");
                     break;
             }
             count = 0;
