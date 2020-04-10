@@ -63,6 +63,9 @@ void robot_loop() {
         robot_count++;
       } else if (strcmp(rcv,"go")==0 && robot[robot_count] == id){
         // only the robot in the first index of the array will set go=1 as the counter is reset to 0
+        if (robot[robot_count] == id) {
+          go=1;
+        }
         go=1;
         init = 0;
       }else if (strcmp(rcv,"EQ")==0){
