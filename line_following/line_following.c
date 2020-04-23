@@ -106,6 +106,28 @@ void robot_loop() {
           double speed_right = bounded_speed(NORM_SPEED - ds_prox);
           double speed_left = bounded_speed(NORM_SPEED - ds_prox);
           if(speed_right < 0.01 && speed_left < 0.01){
+              switch (color()){
+                  case RED:
+                      led_on(RED);
+                      printf("Wall is red\n");
+                      break;
+                  case GREEN:
+                      led_on(GREEN);
+                      printf("Wall is green\n");
+                      break;
+                  case BLUE:
+                      led_on(BLUE);
+                      printf("Wall is blue\n");
+                      break;
+                  case WHITE:
+                      led_off();
+                      break;
+                  case NONE:
+                      led_on(NONE);
+                      printf("Unknown\n");
+                      break;
+              }
+              /*
             if (color() == RED) {
               led_on(RED);
               printf("Wall is red\n");
@@ -122,6 +144,7 @@ void robot_loop() {
               led_on(NONE);
               printf("Unknown\n");
             }
+               */
             set_speed(0, 0);
           }
           set_speed(speed_left, speed_right);
