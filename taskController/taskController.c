@@ -6,7 +6,9 @@
 #define SIMULATION 1
 
 #if SIMULATION
+
 #include "../API/webots/webotsAPI.h"
+
 #else
 #include "../API/epuck/epuckAPI.h"
 #endif
@@ -37,27 +39,39 @@
 #define WHITE 4
 
 int color();
+
 void led_on(int), led_off(), init_rgbled();
 
 
-double error = 0;
-double deriv = 0;
-double integ = 0;
+double error_line = 0;
+double deriv_line = 0;
+double integ_line = 0;
+
+double error_wall = 0;
+double deriv_wall = 0;
+double integ_wall = 0;
 
 
-double pid(double delta) {
+double pid_line(double delta) {
 
-    double prev_err = error;
-    error = delta - PID_DELTA_TARGET;
+    double prev_err = error_line;
+    error_line = delta - PID_DELTA_TARGET;
     //deriv = (error - prev_err);
-    deriv = (error - prev_err)*1000/TIME_STEP;
-    //integ += error;
-    integ += error*TIME_STEP/1000;
-    return K * ( error + 1.0 / T_I * integ + T_D * deriv);
+    deriv_line = (error_line - prev_err) * 1000 / TIME_STEP;
+    //integ_line += error;
+    integ_line += error_line * TIME_STEP / 1000;
+    return K * (error_line + 1.0 / T_I * integ_line + T_D * deriv_line);
 }
 
-
-
+double pid_wall(double delta) {
+    double prev_err = error_wall;
+    error_wall = delta - 200;
+    //deriv = (error - prev_err);
+    deriv_wall = (error_wall - prev_err) * 1000 / TIME_STEP;
+    //integ_line += error;
+    integ_wall += error_wall * TIME_STEP / 1000;
+    return 0.015 * (error_wall + 1.0 / 1000 * integ_wall + 0.10 * deriv_wall);
+}
 
 
 void robot_setup() {
@@ -69,7 +83,6 @@ void robot_setup() {
 }
 
 
-
 void robot_loop() {
     short int IR_ground[GROUND_SENSORS_COUNT];
     short int prox_values[8];
@@ -77,10 +90,13 @@ void robot_loop() {
     int loop_counter = 0;
     int STATE = FIND;
 
-    int counter=0;
+    int counter = 0;
+    int current_wall = NONE;
 
-    double speed_right=0;
-    double speed_left=0;
+    int line_crossed = 0;
+
+    double speed_right = 0;
+    double speed_left = 0;
 
     while (robot_go_on()) {
         loop_counter++;
@@ -89,16 +105,19 @@ void robot_loop() {
         double ds = 0;
         get_ground(IR_ground);
         get_prox_calibrated(prox_values);
-        double prox = (prox_values[0] + prox_values[7])/2.0;
+        double prox = (prox_values[0] + prox_values[7]) / 2.0;
         double ds_prox = (NORM_SPEED * prox) / MAX_PROX;
-        double gs = (IR_ground[GS_RIGHT] + IR_ground[GS_CENTER] + IR_ground[GS_LEFT]) /3.0;
+        double gs = (IR_ground[GS_RIGHT] + IR_ground[GS_CENTER] + IR_ground[GS_LEFT]) / 3.0;
 
-        double a = 0, b = 5, c = 5, d = 0;
-        double prox_right = (a * prox_values[0] + b * prox_values[1] + c * prox_values[2] + d * prox_values[3]) / (a+b+c+d);
-        double prox_left = (a * prox_values[7] + b * prox_values[6] + c * prox_values[5] + d * prox_values[4]) / (a+b+c+d);
+        double a = 1, b = 5, c = 5, d = 0;
+        double prox_right =
+                (a * prox_values[0] + b * prox_values[1] + c * prox_values[2] + d * prox_values[3]) / (a + b + c + d);
+        double prox_left =
+                (a * prox_values[7] + b * prox_values[6] + c * prox_values[5] + d * prox_values[4]) / (a + b + c + d);
 
-        switch (STATE){
+        switch (STATE) {
             case FIND:
+                led_off();
                 if (gs < 350) {
                     STATE = LINE;
                 } else {
@@ -107,54 +126,64 @@ void robot_loop() {
                 break;
 
             case LINE:
-                printf("%f\n", prox);
+                led_off();
                 if (prox >= MAX_PROX) {
                     STATE = WALL;
-                    set_speed(0,0);
-                } else if (gs > 475 && gs < 495){
+                } else if (gs > 475 && gs < 495) {
                     // the values of the sensors is betwen the detection error, to reduce shackiness
                     ds = 0;
-                } else{
-                    ds = pid(gs);
+                } else {
+                    ds = pid_line(gs);
                 }
-                speed_right = bounded_speed((abs(ds)>(PID_MAX_DS) ? 0 : NORM_SPEED) + ds);
-                speed_left  = bounded_speed((abs(ds)>(PID_MAX_DS) ? 0 : NORM_SPEED) - ds);
+                speed_right = bounded_speed((abs(ds) > (PID_MAX_DS) ? 0 : NORM_SPEED) + ds);
+                speed_left = bounded_speed((abs(ds) > (PID_MAX_DS) ? 0 : NORM_SPEED) - ds);
                 set_speed(speed_left, speed_right);
                 break;
 
             case WALL:
 
-                //speed_right = bounded_speed(NORM_SPEED - ds_prox);
-                //speed_left = bounded_speed(NORM_SPEED - ds_prox);
-                //if(speed_right < 0.01 && speed_left < 0.01){
-                    switch (color()){
+                speed_right = bounded_speed(NORM_SPEED - ds_prox);
+                speed_left = bounded_speed(NORM_SPEED - ds_prox);
+
+                if (current_wall == RED) {
+                    if (counter < 16) {
+                        speed_left = bounded_speed(NORM_SPEED);
+                        speed_right = bounded_speed(-NORM_SPEED);
+                        counter++;
+                    } else {
+                        counter = 0;
+                        STATE = AVOID;
+                    }
+                } else if (current_wall == BLUE) {
+                    if (counter < 16) {
+                        speed_left = bounded_speed(-NORM_SPEED);
+                        speed_right = bounded_speed(NORM_SPEED);
+                        counter++;
+                    } else {
+                        counter = 0;
+                        STATE = AVOID;
+                    }
+                } else {
+
+                    switch (color()) {
                         case RED:
                             led_on(RED);
                             printf("Wall is red\n");
-                            if(counter<15){
-                                speed_left=bounded_speed(NORM_SPEED);
-                                speed_right=bounded_speed(-NORM_SPEED);
-                                counter++;
-                            } else{
-                                counter=0;
-                                STATE=AVOID;
-                            }
+                            current_wall = RED;
                             break;
                         case GREEN:
                             led_on(GREEN);
-                            printf("Wall is green\n");
+                            if (prox >= MAX_PROX) {
+                                speed_left = 0;
+                                speed_right = 0;
+                            } else {
+                                STATE = FIND;
+                            }
                             break;
                         case BLUE:
                             led_on(BLUE);
                             printf("Wall is blue\n");
-                            if(counter<15){
-                                speed_left=bounded_speed(-NORM_SPEED);
-                                speed_right=bounded_speed(NORM_SPEED);
-                                counter++;
-                            } else{
-                                counter=0;
-                                STATE=AVOID;
-                            }
+                            current_wall = BLUE;
                             break;
                         case WHITE:
                             led_off();
@@ -163,18 +192,44 @@ void robot_loop() {
                             led_on(NONE);
                             printf("Unknown\n");
                             break;
-                    //}
-                    //set_speed(0, 0);
+                            //}
+                            //set_speed(0, 0);
+
+                    }
                 }
                 set_speed(speed_left, speed_right);
                 break;
 
             case AVOID:
-                    ds = pid(prox_left);
-                    double speed_right = (abs(ds)>PID_MAX_DS ? 0 : NORM_SPEED) - ds;
-                    double speed_left  = (abs(ds)>PID_MAX_DS ? 0 : NORM_SPEED) + ds;
-                    set_speed(bounded_speed(speed_left), bounded_speed(speed_right));
-
+                if (gs < 350 || line_crossed == 1) {
+                    if (counter < 10) {
+                        line_crossed = 1;
+                        if (current_wall == RED) {
+                            speed_left = bounded_speed(NORM_SPEED);
+                            speed_right = bounded_speed(-NORM_SPEED);
+                        } else if (current_wall == BLUE) {
+                            speed_left = bounded_speed(-NORM_SPEED);
+                            speed_right = bounded_speed(NORM_SPEED);
+                        }
+                        counter++;
+                    } else {
+                        STATE = FIND;
+                        current_wall = NONE;
+                        line_crossed = 0;
+                        counter = 0;
+                    }
+                } else {
+                    if (current_wall == RED) {
+                        ds = pid_wall(prox_left);
+                        speed_right = (abs(ds) > 200 ? 0 : NORM_SPEED) - ds;
+                        speed_left = (abs(ds) > 200 ? 0 : NORM_SPEED) + ds;
+                    } else if (current_wall == BLUE) {
+                        ds = pid_wall(prox_right);
+                        speed_right = (abs(ds) > 200 ? 0 : NORM_SPEED) + ds;
+                        speed_left = (abs(ds) > 200 ? 0 : NORM_SPEED) - ds;
+                    }
+                }
+                set_speed(bounded_speed(speed_left), bounded_speed(speed_right));
                 break;
         }
 
@@ -182,7 +237,7 @@ void robot_loop() {
     cleanup_robot();
 }
 
-int main (int argc, char **argv) {
+int main(int argc, char **argv) {
 #if SIMULATION
 #else
     ip = argv[1];
@@ -193,7 +248,7 @@ int main (int argc, char **argv) {
 }
 
 
-int color(){
+int color() {
     unsigned char red[CAMERA_WIDTH * CAMERA_HEIGHT];
     unsigned char green[CAMERA_WIDTH * CAMERA_HEIGHT];
     unsigned char blue[CAMERA_WIDTH * CAMERA_HEIGHT];
@@ -206,10 +261,10 @@ int color(){
             int redpixel = (int) red[n * CAMERA_WIDTH + m];
             int greenpixel = (int) green[n * CAMERA_WIDTH + m];
             int bluepixel = (int) blue[n * CAMERA_WIDTH + m];
-            if(redpixel > 100){
+            if (redpixel > 100) {
                 redpx++;
             }
-            if (greenpixel > 100){
+            if (greenpixel > 100) {
                 greenpx++;
             }
             if (bluepixel > 100) {
@@ -226,35 +281,35 @@ int color(){
     } else if (bluepx > redpx && bluepx > greenpx) {
         printf("%d %d %d\n", redpx, greenpx, bluepx);
         return BLUE;
-    } else if(redpx == greenpx && redpx == bluepx && greenpx == bluepx) {
+    } else if (redpx == greenpx && redpx == bluepx && greenpx == bluepx) {
         printf("%d %d %d\n", redpx, greenpx, bluepx);
         return WHITE;
     }
     return NONE;
 }
 
-void led_on(int color){
+void led_on(int color) {
     switch (color) {
         case 1:
-            for(int i = 0; i < 4; i++){
+            for (int i = 0; i < 4; i++) {
                 disable_rgbled(i);
-                enable_rgbled(i,0xff0000);
+                enable_rgbled(i, 0xff0000);
                 disable_led(i);
             }
             enable_led(3);
             break;
         case 2:
-            for(int i = 0; i < 4; i++){
+            for (int i = 0; i < 4; i++) {
                 disable_rgbled(i);
-                enable_rgbled(i,0x00ff00);
+                enable_rgbled(i, 0x00ff00);
                 disable_led(i);
             }
             enable_led(2);
             break;
         case 3:
-            for(int i = 0; i < 4; i++){
+            for (int i = 0; i < 4; i++) {
                 disable_rgbled(i);
-                enable_rgbled(i,0x0000ff);
+                enable_rgbled(i, 0x0000ff);
                 disable_led(i);
             }
             enable_led(1);
@@ -267,8 +322,8 @@ void led_on(int color){
     }
 }
 
-void led_off(){
-    for(int i = 0; i < 4; i++){
+void led_off() {
+    for (int i = 0; i < 4; i++) {
         disable_rgbled(i);
         disable_led(i);
     }
