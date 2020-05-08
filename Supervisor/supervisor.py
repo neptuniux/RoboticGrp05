@@ -5,8 +5,7 @@ import math
 import struct
 
 NB_ROBOTS = 4
-FOV = 0.15
-
+FOV = 0.2
 robot = Supervisor()
 
 timestep = int(robot.getBasicTimeStep())
@@ -24,9 +23,6 @@ distMatrix = [[0]*NB_ROBOTS for i in range(NB_ROBOTS)]
 trans_field = []
 rota_field = []
 emitter = robot.getEmitter("emitter")
-#s = "test"
-#msg = bytes("test", 'utf-8')
-#e.send(msg)
 
 for i in range(NB_ROBOTS):
     node = robot.getFromDef("EP"+str(i))
@@ -45,6 +41,10 @@ def getRotation(rota_field):
     rota = values[3]
     return rota
 
+def rotationDiff(current, target):
+    return f'{(target - current):.5f}'
+
+
 def avgRotation(*rotaList):
     rotation = 0
     total = 0
@@ -54,7 +54,11 @@ def avgRotation(*rotaList):
                 rotation += r
                 total += 1
     #return round(rotation / total, 5)
-    return f'{(rotation / total):.10f}'
+    if total == 0 :
+        total = 1
+    #return (rotation / total)
+    #print(rotation / total)
+    return f'{(rotation / total):.5f}'
 
 def centerMass(*distList):
     x = 0
@@ -66,14 +70,17 @@ def centerMass(*distList):
                 x += d[0]
                 y += d[1]
                 total += 1
+    if total == 0 :
+        total = 1
     center = (round(x/total, 5), round(y/total, 5))
-    center = (f'{(x/total):.10f}', f'{(y/total):.10f}')
+    center = (f'{(x/total):.5f}', f'{(y/total):.5f}')
     return center
 
 def getDist(x1, y1, x2, y2):
     dist = math.sqrt((x2-x1)**2 + (y2-y1)**2)
     return dist
 
+counter = 1
 
 while (robot.step(timestep) != -1):
     for i in range(NB_ROBOTS):
@@ -89,44 +96,23 @@ while (robot.step(timestep) != -1):
             else:
                 orientationMatrix[i][j] = 999
                 distMatrix[i][j] = 999
-        #print("r -> i = {} -> {}".format(i, avgRotation(orientationMatrix[i])))
-        #print("d -> i = {} -> {}".format(i, centerMass(distMatrix[i])))
-        r = "r" + str(avgRotation(orientationMatrix[i]))
-        c = centerMass(distMatrix[i])
-        x ="x" + str(c[0])
-        #print(x)
-        y ="y" + str(c[1])
-        #print(y)
-        packet = [r, x, y]
-        emitter.setChannel(i + 1)
-        msg_r = bytes(r, 'utf-8')
-        msg_x = bytes(x, 'utf-8')
-        msg_y = bytes(y, 'utf-8')
-        #emitter.send(msg_r)
-        for item in packet:
-            msg = bytes(item, 'utf-8')
-            emitter.send(msg)
 
-
-
-#    for i in range(NB_ROBOTS):
-#        for j in range(NB_ROBOTS):
-#            print("[{}][{}]".format(i, avgRotation(distMatrix[i])))
-
-
-#    robo1 = robot_node[0][0]
-#    robo2 = robot_node[1][0]
-#    if (getDist(*robo1, *robo2) <= FOV):
-#        rota_field[1].setSFRotation([0, 1, 0, robot_node[0][1]])
-
-
-#while (robot.step(timestep) != -1):
-#    del prev
-#    (x, y) = coord
-#    prev = (x, y)
-#    del coord
-#    values = trans_field.getSFVec3f()
-#    rota = rota_field.getSFRotation()
-#    coord = (values[0], values[2])
-#    print("E-puck rotation : {} {} {} {}".format(rota[0], rota[1], rota[2], rota[3]))
-#    print("x = {}, y = {}, prev_x = {}, prev_y = {}".format(coord[0], coord[1], prev[0], prev[1]))
+#try to only send relevant info only when necessary otherwise backlog in the robot
+    if counter % 8 == 0:
+        for i in range(NB_ROBOTS):
+            r = "t" + avgRotation(orientationMatrix[i])
+            c = "c" + f'{(robot_node[i][1]):.5f}'
+            #center = centerMass(distMatrix[i])
+            #x ="x" + str(center[0])
+            #y ="y" + str(center[1])
+            #print(y)
+            packet = [r, c]
+            emitter.setChannel(i + 1)
+            for item in packet:
+                msg = bytes(item, 'utf-8')
+                emitter.send(msg)
+            counter += 1
+    else:
+        counter += 1
+    if counter > 1000:
+        counter = 0
