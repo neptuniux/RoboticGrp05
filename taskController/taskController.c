@@ -1,4 +1,4 @@
-//
+//àééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé
 // Created by daniel on 23.04.20.
 //
 
@@ -14,17 +14,14 @@
 #endif
 
 //define states
-
-
 #define FIND 0
 #define LINE 1
 #define WALL 2
 #define AVOID 3
 
 #define MAX_GROUND 800
-
-
 #define MIN_GROUND 300
+
 #define K 0.009
 
 #define T_I 100
@@ -37,6 +34,24 @@
 #define GREEN 2
 #define BLUE 3
 #define WHITE 4
+
+//define for communications
+/*number of robots on the field*/
+#define NB_ROBOT 3
+
+int send_id(int), send(char[]);
+
+#define MSG_LENGTH 5
+
+int robot[NB_ROBOT];
+int robot_count = 0;
+int ack = 0;
+int go = 0;
+int sent = 0;
+int SAW_OBSTACLE = 0;
+int HAS_STOPPED = 0;
+char rcv[MSG_LENGTH];
+char tmp[MSG_LENGTH];
 
 int color();
 
@@ -84,6 +99,7 @@ void robot_setup() {
 
 
 void robot_loop() {
+    int id = get_robot_ID();
     short int IR_ground[GROUND_SENSORS_COUNT];
     short int prox_values[8];
 
@@ -101,10 +117,27 @@ void robot_loop() {
     while (robot_go_on()) {
         loop_counter++;
 
-        loop_counter++;
+        //control that robot_count doesn't go over the array size
+        if (robot_count >= NB_ROBOT) {
+            robot_count = 0;
+        }
+        receive_msg(rcv);
+        int rcv_id = rcv[0] - 48;
+        if (rcv_id <= NB_ROBOT) {
+            robot[robot_count] = rcv_id;
+            robot_count++;
+        } else if (strcmp(rcv, "go") == 0) {
+            go = 1;
+        } else if (sent == 1) {
+            sent = 0;
+            robot[robot_count] = id;
+            robot_count++;
+        }
+
         double ds = 0;
         get_ground(IR_ground);
         get_prox_calibrated(prox_values);
+
         double prox = (prox_values[0] + prox_values[7]) / 2.0;
         double ds_prox = (NORM_SPEED * prox) / MAX_PROX;
         double gs = (IR_ground[GS_RIGHT] + IR_ground[GS_CENTER] + IR_ground[GS_LEFT]) / 3.0;
@@ -145,6 +178,7 @@ void robot_loop() {
                 speed_right = bounded_speed(NORM_SPEED - ds_prox);
                 speed_left = bounded_speed(NORM_SPEED - ds_prox);
 
+                //this if is used to rotate the robot in front of a wall
                 if (current_wall == RED) {
                     if (counter < 16) {
                         speed_left = bounded_speed(NORM_SPEED);
@@ -165,6 +199,7 @@ void robot_loop() {
                     }
                 } else {
 
+                    //if the robot see the wall for the first time
                     switch (color()) {
                         case RED:
                             led_on(RED);
@@ -173,6 +208,7 @@ void robot_loop() {
                             break;
                         case GREEN:
                             led_on(GREEN);
+                            //if the robot is directly in front of a green wall
                             if (prox >= MAX_PROX) {
                                 speed_left = 0;
                                 speed_right = 0;
@@ -192,8 +228,6 @@ void robot_loop() {
                             led_on(NONE);
                             printf("Unknown\n");
                             break;
-                            //}
-                            //set_speed(0, 0);
 
                     }
                 }
@@ -201,9 +235,11 @@ void robot_loop() {
                 break;
 
             case AVOID:
+                //if the robot is back on a line
                 if (gs < 350 || line_crossed == 1) {
                     if (counter < 10) {
                         line_crossed = 1;
+                        //turn one direction or an other depending of the color
                         if (current_wall == RED) {
                             speed_left = bounded_speed(NORM_SPEED);
                             speed_right = bounded_speed(-NORM_SPEED);
@@ -328,7 +364,3 @@ void led_off() {
         disable_led(i);
     }
 }
-
-
-
-
