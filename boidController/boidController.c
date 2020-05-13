@@ -10,7 +10,8 @@
 #endif
 
 #define MAX_ROTA 2
-#define MAX_PROX 300
+#define MAX_PROX 200
+#define PI acos(-1.0)
 
 char rcv[MSG_LENGTH];
 char cur[15];
@@ -28,16 +29,15 @@ double integ = 0;
 void robot_setup() {
     init_robot();
     init_sensors();
-    init_communication();
+    //init_communication();
+    init_boids();
 }
 
 void robot_loop() {
   int id = get_robot_ID();
   short int prox_values[8];
-  // TODO : modify the webotsAPI.c to include these modifications -> init_boids() ???
-  receiver = wb_robot_get_device("receiver");
+
   wb_receiver_set_channel(receiver, id + 1);
-  receiver = wb_robot_get_device("receiver");
 
 
   while (robot_go_on()) {
@@ -47,14 +47,14 @@ void robot_loop() {
     if(token == 't'){
       strncpy(rota, rcv + 1, strlen(rcv) - 1);
       rotation = strtof(rota, NULL);
-      if(rotation < 0.01 && rotation > -0.01){
+      if(rotation < 0.1 && rotation > -0.1){
         rotation = 0;
       }
       //printf("id = %d r = %f\n", id, rotation);
     } else if (token == 'c') {
       strncpy(cur, rcv + 1, strlen(rcv) - 1);
       current = strtof(cur, NULL);
-      if(current < 0.01 && current > -0.01){
+      if(current < 0.02 && current > -0.02){
         current = 0;
       }
       //printf("id = %d, c =%f\n", id, current);
@@ -67,6 +67,7 @@ void robot_loop() {
       y = strtof(y_str, NULL);
       //printf("d = %d y = %f\n", id, y);
     }
+    
     //printf("id = %d r = %f c= %f\n", id, rotation, current);
     // fetch proximity sensor values
     get_prox_calibrated(prox_values);
@@ -76,24 +77,23 @@ void robot_loop() {
     double prox_left = (1*prox_values[7] + 2*prox_values[6] + 2*prox_values[5] + 1*prox_values[4]) / 4.;
     double ds_right = (NORM_SPEED * prox_right) / MAX_PROX;
     double ds_left = (NORM_SPEED * prox_left) / MAX_PROX;
-    double speed_right = bounded_speed(NORM_SPEED - ds_right);
-    double speed_left = bounded_speed(NORM_SPEED - ds_left);
+    double speed_right = bounded_speed(MAX_SPEED/2 - ds_right);
+    double speed_left = bounded_speed(MAX_SPEED/2 - ds_left);
     // make sure speed values are legal
-    double test = cos(rotation);
-    if(rotation != 0 && prox_right < MAX_PROX && prox_left < MAX_PROX){
-      if(rotation > current){
-        speed_left = bounded_speed(speed_left * 2);
-        speed_right = speed_right*0.8;
-      } else if (rotation < current){
-        speed_right = bounded_speed(speed_right * 2);
-        speed_left = speed_left*0.8;
+
+    if(prox_right < 250 && prox_left < 250){
+      //printf("id = %d, r = %f\n", id, rotation);
+      if(rotation > 0){
+        speed_left = bounded_speed(speed_left * 1);
+        speed_right = speed_right*0.2;
+      } else if (rotation < 0){
+        speed_right = bounded_speed(speed_right * 1);
+        speed_left = speed_left*0.2;
       }
-    } else if (rotation == 0){
+    } else{
       speed_right = bounded_speed(NORM_SPEED - ds_right);
       speed_left = bounded_speed(NORM_SPEED - ds_left);
     }
-    double a = speed_left;
-    double b = speed_right;
 
     set_speed(speed_right,speed_left);
   }

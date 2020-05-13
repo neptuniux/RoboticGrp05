@@ -4,8 +4,11 @@ from controller import *
 import math
 import struct
 
-NB_ROBOTS = 4
-FOV = 0.2
+PI = math.pi
+
+NB_ROBOTS = 5
+FOV = 0.3
+ANGLE = 2.356
 robot = Supervisor()
 
 timestep = int(robot.getBasicTimeStep())
@@ -41,10 +44,7 @@ def getRotation(rota_field):
     rota = values[3]
     return rota
 
-def rotationDiff(current, target):
-    return f'{(target - current):.5f}'
-
-
+# Don't use transform() before using this function
 def avgRotation(*rotaList):
     rotation = 0
     total = 0
@@ -58,7 +58,9 @@ def avgRotation(*rotaList):
         total = 1
     #return (rotation / total)
     #print(rotation / total)
-    return f'{(rotation / total):.5f}'
+    #return f'{(rotation / total):.5f}'
+    #print(rotation / total)
+    return rotation / total
 
 def centerMass(*distList):
     x = 0
@@ -80,6 +82,39 @@ def getDist(x1, y1, x2, y2):
     dist = math.sqrt((x2-x1)**2 + (y2-y1)**2)
     return dist
 
+'''
+def isBehind(x1, y1, x2, y2):
+    x = x2-x1
+    y = y2-y1
+    Ax = x1 + FOV*math.cos(ANGLE)
+    Ay = y1 + FOV*math.sin(ANGLE)
+    Bx = x1 + FOV*math.cos(-ANGLE)
+    By = y1 + FOV*math.sin(-ANGLE)
+    angle = math.atan(x/y)
+
+    print("A = {},{}; B = {},{}; t = {},{}".format(Ax,Ay, Bx, By, x2-x1, y2-y1))
+'''
+
+#transform [0;pi][0;-pi] range to [0,2pi]
+def transform(rotation):
+    if rotation < 0:
+        rotation = 2*math.pi + rotation
+        #print(rotation)
+    return rotation
+
+
+def rotationDiff(current, target):
+    if target == 0:
+        return f'{target:.5f}'
+    delta = target - current
+    #print("before = " + str(delta))
+    if abs(delta) > PI:
+        if current > target:
+            delta = (2*PI + target) - current
+        else:
+            delta = target - (2*PI + current)
+    return f'{delta:.5f}'
+
 counter = 1
 
 while (robot.step(timestep) != -1):
@@ -91,6 +126,7 @@ while (robot.step(timestep) != -1):
         for j in range(NB_ROBOTS):
             # register rotation angle of robots in range
             if ((getDist(*robot_node[i][0], *robot_node[j][0]) <= FOV) and i != j):
+
                 orientationMatrix[i][j] = robot_node[j][1]
                 distMatrix[i][j] = robot_node[j][0]
             else:
@@ -100,13 +136,9 @@ while (robot.step(timestep) != -1):
 #try to only send relevant info only when necessary otherwise backlog in the robot
     if counter % 8 == 0:
         for i in range(NB_ROBOTS):
-            r = "t" + avgRotation(orientationMatrix[i])
+            r = "t" + rotationDiff(transform(robot_node[i][1]), transform(avgRotation(orientationMatrix[i])))
             c = "c" + f'{(robot_node[i][1]):.5f}'
-            #center = centerMass(distMatrix[i])
-            #x ="x" + str(center[0])
-            #y ="y" + str(center[1])
-            #print(y)
-            packet = [r, c]
+            packet = [r]
             emitter.setChannel(i + 1)
             for item in packet:
                 msg = bytes(item, 'utf-8')
