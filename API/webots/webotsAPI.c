@@ -8,14 +8,14 @@ WbDeviceTag left_motor, right_motor;
 
 void init_motor() {
 
-  // get a handler to the motors 
+  // get a handler to the motors
   left_motor = wb_robot_get_device("left wheel motor");
   right_motor = wb_robot_get_device("right wheel motor");
-  
+
   // set target position to infinity (speed control)
   wb_motor_set_position(left_motor, INFINITY);
   wb_motor_set_position(right_motor, INFINITY);
-  
+
   // set speed to 0
   wb_motor_set_velocity(left_motor, 0.0);
   wb_motor_set_velocity(right_motor, 0.0);
@@ -42,7 +42,7 @@ const char *led_names[LED_COUNT+2] =   {"led0", "led2", "led4", "led6","led8","l
 //  {"led0", "led1", "led2", "led3","led4", "led5", "led6", "led7"};
 WbDeviceTag led_tags[LED_COUNT+2];
 
-void init_led(){  
+void init_led(){
   int i;
   // init leds
   for (i=0;  i<LED_COUNT+2; i++) {
@@ -84,7 +84,7 @@ const char *rgbled_names[LED_COUNT] =   {"led1", "led3", "led5", "led7"};
 //  {"led0", "led1", "led2", "led3","led4", "led5", "led6", "led7"};
 WbDeviceTag rgbled_tags[LED_COUNT];
 
-void init_rgbled(){  
+void init_rgbled(){
   int i;
   // init leds
   for (i=0;  i<LED_COUNT; i++) {
@@ -164,7 +164,7 @@ void calibrate_light() {
 
 void get_light(short int *light_values) {
   int i;
-  
+
   //printf("%f\n",wb_light_sensor_get_value(light_sensor_tags[3]));
   for (i=0; i<PROX_SENSORS_COUNT; i++) {
     light_values[i] = wb_light_sensor_get_value(light_sensor_tags[i]);
@@ -212,7 +212,7 @@ WbDeviceTag cam;
 void init_camera() {
   cam = wb_robot_get_device("camera");
   wb_camera_enable(cam,CAM_RATE*TIME_STEP);
-  
+
   // create dir images
   struct stat st = {0};
 
@@ -237,8 +237,8 @@ void disable_camera() {
 void save_bmp_image(const unsigned char *image) {
 	static int image_counter = 0;
 	char filename[32];
-	
-	
+
+
 	sprintf(filename, "images/image%03d.bmp", image_counter++);
 
 	int width = CAMERA_WIDTH;
@@ -246,14 +246,14 @@ void save_bmp_image(const unsigned char *image) {
 
 	int filesize = 54 + 3 * width * height;
 	unsigned char bmpfileheader[14] = {'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0};
-	
+
 	bmpfileheader[2] = (unsigned char)(filesize);
 	bmpfileheader[3] = (unsigned char)(filesize >> 8);
 	bmpfileheader[4] = (unsigned char)(filesize >> 16);
 	bmpfileheader[5] = (unsigned char)(filesize >> 24);
-	
+
 	unsigned char bmpinfoheader[40] = {40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 24, 0};
-	
+
 	bmpinfoheader[4] = (unsigned char)(width);
 	bmpinfoheader[5] = (unsigned char)(width >> 8);
 	bmpinfoheader[6] = (unsigned char)(width >> 16);
@@ -262,9 +262,9 @@ void save_bmp_image(const unsigned char *image) {
 	bmpinfoheader[9] = (unsigned char)(height >> 8);
 	bmpinfoheader[10] = (unsigned char)(height >> 16);
 	bmpinfoheader[11] = (unsigned char)(height >> 24);
-	
+
 	unsigned char bmppad[3] = {0, 0, 0};
-	
+
 	FILE *f = fopen(filename, "wb");
 	fwrite(bmpfileheader, 1, 14, f);
 	fwrite(bmpinfoheader, 1, 40, f);
@@ -284,15 +284,15 @@ void get_camera(unsigned char *red, unsigned char *green, unsigned char *blue) {
 
   int m,n;
 
-  for (n=0; n<height; n++) {                  
+  for (n=0; n<height; n++) {
     for (m=0; m<width; m++) {
       //gr[n*width+m] = wb_camera_image_get_grey(im, width, m, n);
       red[n*width+m] = wb_camera_image_get_red(im, width, m, n);
       green[n*width+m] = wb_camera_image_get_green(im, width, m, n);
       blue[n*width+m] = wb_camera_image_get_blue(im, width, m, n);
     }
-  } 
-  
+  }
+
   unsigned char bgr888[CAMERA_WIDTH * CAMERA_HEIGHT * 3];
 
   for (int i = 0; i < CAMERA_HEIGHT * CAMERA_WIDTH; i++) {
@@ -300,9 +300,9 @@ void get_camera(unsigned char *red, unsigned char *green, unsigned char *blue) {
 		bgr888[3 * i + 1] = green[i];
 		bgr888[3 * i] = blue[i];
   }
-  
+
   save_bmp_image(bgr888);
-}   
+}
 
 
 
@@ -447,11 +447,11 @@ WbDeviceTag emitter,receiver;
 void init_communication() {
   emitter = wb_robot_get_device("emitter");
   receiver = wb_robot_get_device("receiver");
-  
+
   // setup communication
-  wb_emitter_set_channel(emitter, COM_CHANNEL);
+  //wb_emitter_set_channel(emitter, COM_CHANNEL);
   wb_receiver_enable(receiver, TIME_STEP);
-  wb_receiver_set_channel(receiver, COM_CHANNEL);
+  //wb_receiver_set_channel(receiver, COM_CHANNEL);
 }
 
 // send the message
@@ -461,9 +461,9 @@ void send_msg(const char *msg) {
 
 
 // receive message
-void receive_msg(char* buffer) {  
+void receive_msg(char* buffer) {
   strcpy(buffer,MSG_NONE);
-  
+
   // check if there is a packet in the packet queue
   if (wb_receiver_get_queue_length(receiver) > 0) {
     // read current packet's data
@@ -485,6 +485,19 @@ int get_robot_ID() {
     else return a;
 }
 
+///////////////////////////////////////////////////////
+//Boids
+
+void init_boids(){
+  receiver = wb_robot_get_device("receiver");
+  //wb_receiver_set_channel(receiver, id + 1);
+  wb_receiver_enable(receiver, TIME_STEP);
+}
+
+// set channel of the robot depending on it id
+void setChannel(int id){
+  wb_receiver_set_channel(receiver, id + 1);
+}
 
 
 // ///////////////
@@ -513,7 +526,3 @@ int robot_go_on() {
 void cleanup_robot() {
   wb_robot_cleanup();
 }
-
-
-
-

@@ -127,7 +127,7 @@ void get_tof(short int *tof_distance);
 #define AXES_Y 1
 #define AXES_Z 2
 
-// instantaneous rotational speed for each axis 
+// instantaneous rotational speed for each axis
 #define GYRO_SENSOR_COUNT 3
 void get_gyro_axes( short *gyro);
 
@@ -136,11 +136,11 @@ void get_gyro_axes( short *gyro);
 #define ORIENT_SENSOR_COUNT 1
 void get_orientation(float *orientation);
 
-// inclination to vertical of acceleration vector  
+// inclination to vertical of acceleration vector
 #define INCLIN_SENSOR_COUNT 1
 void get_inclination(float *inclination);
 
-// magnitude of acceleration vector  
+// magnitude of acceleration vector
 #define ACC_SENSOR_COUNT 1
 void get_acceleration(float *acceleration);
 
@@ -187,12 +187,17 @@ void get_microphones(short int *soundlevels);
 #define COM_CHANNEL 1
 #define MSG_NONE "ZZZZ"
 
-#define MSG_LENGTH 4
+#define MSG_LENGTH 5
 
 void init_communication();
 void send_msg(const char *snd);
 void receive_msg(char *rcv);
 
 /*** COMMUNICATION end ***/
+
+/*** BOID start ***/
+
+void init_boids();
+void setChannel(int id);
 
 #endif // WEBOTSAPI_H
