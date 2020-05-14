@@ -7,8 +7,8 @@ WorldInfo {
 }
 Viewpoint {
   fieldOfView 0.7
-  orientation 0.9999999999999999 5.834018808567317e-17 8.210254031079967e-18 4.6923889803846865
-  position 0.022472891357410884 1.7664627452172028 -0.042101384241711726
+  orientation 0.9999999999999997 1.9480245072770812e-08 5.190470916022015e-09 4.692390448373804
+  position 0.022472891357410728 3.977148367319049 -0.08632099278879357
 }
 Background {
   skyColor [
@@ -134,7 +134,7 @@ DEF LIGHTS Group {
   ]
 }
 RectangleArena {
-  floorSize 0.6 0.8
+  floorSize 2.1 1.7
   floorAppearance Appearance {
     material Material {
     }
@@ -156,38 +156,299 @@ RectangleArena {
     }
   }
 }
+Solid {
+  translation 0 0 -0.53
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+}
+Solid {
+  translation -0.6 0 0.01
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(1)"
+}
+Solid {
+  translation 0.69 0 -0.53
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(2)"
+}
+Solid {
+  translation 0.38 0 -0.2
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(3)"
+}
+Solid {
+  translation -0.68 0 -0.53
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(4)"
+}
+Solid {
+  translation -1.05 0 -0.84
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(10)"
+}
+Solid {
+  translation 1.06 0 -0.84
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(11)"
+}
+Solid {
+  translation 1.06 0 0.86
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(12)"
+}
+Solid {
+  translation -1.05 0 0.86
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(13)"
+}
+Solid {
+  translation -0.34 0 -0.61
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(5)"
+}
+Solid {
+  translation -0.38 0 -0.25
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(6)"
+}
+Solid {
+  translation 0 0 0.6
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(7)"
+}
+Solid {
+  translation 0.52 0 0.29
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(8)"
+}
+Solid {
+  translation -0.58 0 0.49
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.2
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(9)"
+}
 DEF EP0 E-puck {
-  translation -0.21 0 0
+  translation -0.21 0 0.15
   name "0"
-  controller "Test"
+  controller "boidController"
   version "2"
   emitter_channel 2
 }
+DEF EP5 E-puck {
+  translation -0.15 0 0.25
+  name "5"
+  controller "boidController"
+  version "2"
+  emitter_channel 2
+  receiver_channel 6
+}
+DEF EP4 E-puck {
+  translation -0.07 0 0.34
+  name "4"
+  controller "boidController"
+  version "2"
+  emitter_channel 2
+  receiver_channel 5
+}
+DEF EP6 E-puck {
+  translation 0.03 0 0.33
+  name "6"
+  controller "boidController"
+  version "2"
+  emitter_channel 2
+  receiver_channel 7
+}
 DEF EP2 E-puck {
-  translation -0.10999999999999999 0 0.1
+  translation -0.08 0 0.13
   name "2"
-  controller "Test"
+  controller "boidController"
   version "2"
   receiver_channel 3
 }
 DEF EP3 E-puck {
   translation -0.009999999999999981 0 0.2
   name "3"
-  controller "Test"
+  controller "boidController"
   version "2"
   receiver_channel 4
 }
 DEF EP1 E-puck {
-  translation 0.1 0 0.1
+  translation 0.02 0 0.1
   name "1"
-  controller "Test"
+  controller "boidController"
   version "2"
   receiver_channel 2
+}
+DEF EP7 E-puck {
+  translation 0.12000000000000001 0 0.2
+  name "7"
+  controller "boidController"
+  version "2"
+  receiver_channel 8
+}
+DEF EP8 E-puck {
+  translation 0.22000000000000003 0 0.30000000000000004
+  name "8"
+  controller "boidController"
+  version "2"
+  receiver_channel 8
 }
 DEF sup Robot {
   children [
     DEF emitter Emitter {
-      channel 1
+      channel 8
     }
   ]
   controller "Supervisor"
