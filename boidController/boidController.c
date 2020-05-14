@@ -47,33 +47,20 @@ void robot_loop() {
 
     if(token == 't'){
       strncpy(rota, rcv + 1, strlen(rcv) - 1);
-      //current = rotation;
       rotation = strtof(rota, NULL);
-      //rotation = (current + rotation) / 2;
       if(rotation < 0.1 && rotation > -0.1){
         rotation = 0;
       }
-      //printf("id = %d r = %f\n", id, rotation);
-    } else if (token == 'b') {
+    } else if (token == 'c') {
       strncpy(cur, rcv + 1, strlen(rcv) - 1);
       current = strtof(cur, NULL);
-      if(current == 1){
-        
-      printf("%d is in group\n", id);
-      }
-      //printf("id = %d, c =%f\n", id, current);*/
     } else if (token == 'x') {
       strncpy(x_str, rcv + 1, strlen(rcv) - 1);
       x = strtof(x_str, NULL);
-      //printf("id = %d x = %f\n", id, x);
     } else if (token == 'y') {
       strncpy(y_str, rcv + 1, strlen(rcv) - 1);
       y = strtof(y_str, NULL);
-      //printf("d = %d y = %f\n", id, y);
     }
-    
-    //printf("id = %d r = %f c= %f\n", id, rotation, current);
-    // fetch proximity sensor values
     get_prox(prox_values);
 
     // basic explorer behavior
@@ -86,7 +73,6 @@ void robot_loop() {
     // make sure speed values are legal
 
     if(prox_right < MAX_PROX && prox_left < MAX_PROX){
-      //printf("id = %d, r = %f\n", id, rotation);
       if(rotation > 0){
         speed_left = bounded_speed(speed_left * 1.5);
         speed_right = speed_right*0.6;
