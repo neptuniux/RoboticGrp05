@@ -6,8 +6,8 @@ import struct
 
 PI = math.pi
 
-NB_ROBOTS = 5
-FOV = 0.3
+NB_ROBOTS = 9
+FOV = 0.2
 ANGLE = 2.356
 robot = Supervisor()
 
@@ -19,6 +19,7 @@ prev = ()
 m = NB_ROBOTS
 #n = col
 n = 2
+inBoid = [0 for i in range(NB_ROBOTS)];
 
 robot_node = [[0]*n for i in range(NB_ROBOTS)]
 orientationMatrix = [[0]*NB_ROBOTS for i in range(NB_ROBOTS)]
@@ -126,7 +127,7 @@ while (robot.step(timestep) != -1):
         for j in range(NB_ROBOTS):
             # register rotation angle of robots in range
             if ((getDist(*robot_node[i][0], *robot_node[j][0]) <= FOV) and i != j):
-
+                inBoid[i] = 1
                 orientationMatrix[i][j] = robot_node[j][1]
                 distMatrix[i][j] = robot_node[j][0]
             else:
@@ -137,13 +138,14 @@ while (robot.step(timestep) != -1):
     if counter % 8 == 0:
         for i in range(NB_ROBOTS):
             r = "t" + rotationDiff(transform(robot_node[i][1]), transform(avgRotation(orientationMatrix[i])))
-            c = "c" + f'{(robot_node[i][1]):.5f}'
-            packet = [r]
+            b = "b" + str(inBoid[i])
+            packet = [r, b]
             emitter.setChannel(i + 1)
             for item in packet:
                 msg = bytes(item, 'utf-8')
                 emitter.send(msg)
             counter += 1
+            inBoid[i] = 0;
     else:
         counter += 1
     if counter > 1000:

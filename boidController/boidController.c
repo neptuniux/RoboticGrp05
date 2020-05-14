@@ -28,7 +28,7 @@ double integ = 0;
 
 void robot_setup() {
     init_robot();
-    init_sensors();
+    init_prox();
     //init_communication();
     init_boids();
 }
@@ -36,6 +36,7 @@ void robot_setup() {
 void robot_loop() {
   int id = get_robot_ID();
   short int prox_values[8];
+  rotation = 0;
 
   wb_receiver_set_channel(receiver, id + 1);
 
@@ -46,18 +47,21 @@ void robot_loop() {
 
     if(token == 't'){
       strncpy(rota, rcv + 1, strlen(rcv) - 1);
+      //current = rotation;
       rotation = strtof(rota, NULL);
+      //rotation = (current + rotation) / 2;
       if(rotation < 0.1 && rotation > -0.1){
         rotation = 0;
       }
       //printf("id = %d r = %f\n", id, rotation);
-    } else if (token == 'c') {
+    } else if (token == 'b') {
       strncpy(cur, rcv + 1, strlen(rcv) - 1);
       current = strtof(cur, NULL);
-      if(current < 0.02 && current > -0.02){
-        current = 0;
+      if(current == 1){
+        
+      printf("%d is in group\n", id);
       }
-      //printf("id = %d, c =%f\n", id, current);
+      //printf("id = %d, c =%f\n", id, current);*/
     } else if (token == 'x') {
       strncpy(x_str, rcv + 1, strlen(rcv) - 1);
       x = strtof(x_str, NULL);
@@ -70,32 +74,37 @@ void robot_loop() {
     
     //printf("id = %d r = %f c= %f\n", id, rotation, current);
     // fetch proximity sensor values
-    get_prox_calibrated(prox_values);
+    get_prox(prox_values);
 
     // basic explorer behavior
-    double prox_right = (1*prox_values[0] + 2*prox_values[1] + 2*prox_values[2] + 1*prox_values[3]) / 4.;
-    double prox_left = (1*prox_values[7] + 2*prox_values[6] + 2*prox_values[5] + 1*prox_values[4]) / 4.;
+    double prox_right = (2*prox_values[0] + 2*prox_values[1] + 2*prox_values[2] + 1*prox_values[3]) / 5.;
+    double prox_left = (2*prox_values[7] + 2*prox_values[6] + 2*prox_values[5] + 1*prox_values[4]) / 5.;
     double ds_right = (NORM_SPEED * prox_right) / MAX_PROX;
     double ds_left = (NORM_SPEED * prox_left) / MAX_PROX;
-    double speed_right = bounded_speed(MAX_SPEED/2 - ds_right);
-    double speed_left = bounded_speed(MAX_SPEED/2 - ds_left);
+    double speed_right = bounded_speed(NORM_SPEED - ds_right);
+    double speed_left = bounded_speed(NORM_SPEED - ds_left);
     // make sure speed values are legal
 
-    if(prox_right < 250 && prox_left < 250){
+    if(prox_right < MAX_PROX && prox_left < MAX_PROX){
       //printf("id = %d, r = %f\n", id, rotation);
       if(rotation > 0){
-        speed_left = bounded_speed(speed_left * 1);
-        speed_right = speed_right*0.2;
+        speed_left = bounded_speed(speed_left * 1.5);
+        speed_right = speed_right*0.6;
       } else if (rotation < 0){
-        speed_right = bounded_speed(speed_right * 1);
-        speed_left = speed_left*0.2;
+        speed_right = bounded_speed(speed_right * 1.5);
+        speed_left = speed_left*0.6;
       }
     } else{
       speed_right = bounded_speed(NORM_SPEED - ds_right);
       speed_left = bounded_speed(NORM_SPEED - ds_left);
     }
+    if(prox_values[3] > 600 && prox_values[4] > 600){
+      speed_right = bounded_speed(NORM_SPEED);
+      speed_left = bounded_speed(NORM_SPEED);
+    }
 
     set_speed(speed_right,speed_left);
+    
   }
   cleanup_robot();
 }
