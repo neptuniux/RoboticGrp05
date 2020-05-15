@@ -389,6 +389,8 @@ int greenwall = 0; (on rajoute ensuite dans green un greenwall ++)
     }
 (while dans chaque autre cas) 
 
+senseur detecte qqch n etant aucun des murs devant (le premier robot à l arret)  se stop donc automatiquement  et ainsi fait sotp les 3 robots ensuite le while stop la simu pour le 2eme mur 
+
 
 
 */ 
