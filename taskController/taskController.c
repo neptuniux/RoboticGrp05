@@ -364,3 +364,31 @@ void led_off() {
         disable_led(i);
     }
 }
+
+/*
+Si communication
+
+int send_id(int id){
+  sprintf(tmp, "%d", id);
+  send_msg(tmp);
+  return 1;
+}
+
+int send(char msg[]){
+  sprintf(tmp, "%s", msg);
+  send_msg(tmp);
+  return 1;
+}
+
+counteur arret au 2eme vert
+
+int greenwall = 0; (on rajoute ensuite dans green un greenwall ++) 
+
+    while(greenwall == 2) {
+        stop; (ou set speed 0) 
+    }
+(while dans chaque autre cas) 
+
+
+
+*/ 
