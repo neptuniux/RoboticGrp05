@@ -93,13 +93,13 @@ def centerMassdiff(center_x,center_y,robot_x, robot_y):
 def rotationDiff(current, target):
     if target == 0:
         return f'{target:.5f}'
-    delta = target - current
+    delta = current - target
     #get the shortest rotation to reach the target (if > PI go the other way around)
     if abs(delta) > PI:
-        if current > target:
-            delta = (2*PI + target) - current
+        if current < target:
+            delta = (2*PI + current) - target
         else:
-            delta = target - (2*PI + current)
+            delta = current - (2*PI + target)
     return f'{delta:.5f}'
 
 

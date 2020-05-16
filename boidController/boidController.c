@@ -73,10 +73,10 @@ void robot_loop() {
     /// Adjust the speed only if the robot is not currently avoiding an obstacle
     /// And if there is adjustment to be done
     if(prox_right < MAX_PROX && prox_left < MAX_PROX && rotation != 0 && mass_center != 0){
-      if(rotation > 0){
+      if(rotation < 0){
         change_rota_left = bounded_speed(speed_left*1.5);
         change_rota_right = bounded_speed(speed_right*0.6);
-      } else if (rotation < 0){
+      } else if (rotation > 0){
         change_rota_left = bounded_speed(speed_left*0.6);
         change_rota_right = bounded_speed(speed_right*1.5);
       }
