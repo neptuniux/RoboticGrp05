@@ -19,6 +19,7 @@
 #define WALL 2
 #define AVOID 3
 
+
 #define MAX_GROUND 800
 #define MIN_GROUND 300
 
@@ -221,8 +222,10 @@ void robot_loop() {
                             printf("Wall is blue\n");
                             current_wall = BLUE;
                             break;
-                        case WHITE:
+                        case EPUCK:
                             led_off();
+                            speed_left = 0;
+                            speed_right = 0;
                             break;
                         case NONE:
                             led_on(NONE);
@@ -233,6 +236,9 @@ void robot_loop() {
                 }
                 set_speed(speed_left, speed_right);
                 break;
+                
+            //stop when the e-puck sees a green wall or another e-puck
+            
 
             case AVOID:
                 //if the robot is back on a line
@@ -317,9 +323,9 @@ int color() {
     } else if (bluepx > redpx && bluepx > greenpx) {
         printf("%d %d %d\n", redpx, greenpx, bluepx);
         return BLUE;
-    } else if (redpx == greenpx && redpx == bluepx && greenpx == bluepx) {
+    } else if (redpx > 1000 && bluepx > 1000 && greenpx > 1000) {
         printf("%d %d %d\n", redpx, greenpx, bluepx);
-        return WHITE;
+        return EPUCK;
     }
     return NONE;
 }
@@ -390,7 +396,7 @@ int greenwall = 0; (on rajoute ensuite dans green un greenwall ++)
 (while dans chaque autre cas) 
 
 senseur detecte qqch n etant aucun des murs devant (le premier robot à l arret)  se stop donc automatiquement  et ainsi fait sotp les 3 robots ensuite le while stop la simu pour le 2eme mur 
-
+color 
 
 
 */ 
