@@ -18,23 +18,28 @@
 #define LINE 1
 #define WALL 2
 #define AVOID 3
+#define STOP 4
 
+//Parameters for line PID
+#define K_LINE 0.01
+#define T_I_LINE 100
+#define T_D_LINE 0.05
+#define LINE_GS_TARGET 490
+#define LINE_MAX_DS 490
 
-#define MAX_GROUND 800
-#define MIN_GROUND 300
+//Parameters for wall PID
+#define K_WALL 0.01
+#define T_I_WALL 1000
+#define T_D_WALL 0.1
+#define PID_WALL_FOLLOW_TARGET 200
+#define PID_MAX_DS 200
 
-#define K 0.009
-
-#define T_I 100
-#define T_D 0.001
-#define PID_DELTA_TARGET 490
-#define PID_MAX_DS 490
 #define NONE 0
-
 #define RED 1
 #define GREEN 2
 #define BLUE 3
 #define WHITE 4
+#define EPUCK 5
 
 //define for communications
 /*number of robots on the field*/
@@ -46,11 +51,7 @@ int send_id(int), send(char[]);
 
 int robot[NB_ROBOT];
 int robot_count = 0;
-int ack = 0;
-int go = 0;
 int sent = 0;
-int SAW_OBSTACLE = 0;
-int HAS_STOPPED = 0;
 char rcv[MSG_LENGTH];
 char tmp[MSG_LENGTH];
 
@@ -71,12 +72,12 @@ double integ_wall = 0;
 double pid_line(double delta) {
 
     double prev_err = error_line;
-    error_line = delta - PID_DELTA_TARGET;
+    error_line = delta - LINE_GS_TARGET;
     //deriv = (error - prev_err);
     deriv_line = (error_line - prev_err) * 1000 / TIME_STEP;
     //integ_line += error;
     integ_line += error_line * TIME_STEP / 1000;
-    return K * (error_line + 1.0 / T_I * integ_line + T_D * deriv_line);
+    return K_LINE * (error_line + 1.0 / T_I_LINE * integ_line + T_D_LINE * deriv_line);
 }
 
 double pid_wall(double delta) {
@@ -86,13 +87,14 @@ double pid_wall(double delta) {
     deriv_wall = (error_wall - prev_err) * 1000 / TIME_STEP;
     //integ_line += error;
     integ_wall += error_wall * TIME_STEP / 1000;
-    return 0.015 * (error_wall + 1.0 / 1000 * integ_wall + 0.10 * deriv_wall);
+    return K_WALL * (error_wall + 1.0 / T_I_WALL * integ_wall + T_D_WALL * deriv_wall);
 }
 
 
 void robot_setup() {
     init_robot();
     init_sensors();
+    init_communication();
     calibrate_prox();
     init_camera();
     init_rgbled();
@@ -106,6 +108,7 @@ void robot_loop() {
 
     int loop_counter = 0;
     int STATE = FIND;
+    int phase = 0;
 
     int counter = 0;
     int current_wall = NONE;
@@ -121,14 +124,14 @@ void robot_loop() {
         //control that robot_count doesn't go over the array size
         if (robot_count >= NB_ROBOT) {
             robot_count = 0;
-        }
+            phase = 2;
+       }
         receive_msg(rcv);
         int rcv_id = rcv[0] - 48;
         if (rcv_id <= NB_ROBOT) {
             robot[robot_count] = rcv_id;
             robot_count++;
-        } else if (strcmp(rcv, "go") == 0) {
-            go = 1;
+            printf("[0]:%d, [1]: %d, [2]: %d, count =%d\n",robot[0], robot[1], robot[2], robot_count);
         } else if (sent == 1) {
             sent = 0;
             robot[robot_count] = id;
@@ -151,6 +154,7 @@ void robot_loop() {
 
         switch (STATE) {
             case FIND:
+                printf("Robot %d enter Phase 1\n", id);
                 led_off();
                 if (gs < 350) {
                     STATE = LINE;
@@ -160,17 +164,19 @@ void robot_loop() {
                 break;
 
             case LINE:
-                led_off();
+                
+                printf("Robot %d enter Phase 2\n", id);
+                enable_led(0);
                 if (prox >= MAX_PROX) {
                     STATE = WALL;
-                } else if (gs > 475 && gs < 495) {
+                } else if (gs > 470 && gs < 500) {
                     // the values of the sensors is betwen the detection error, to reduce shackiness
                     ds = 0;
                 } else {
                     ds = pid_line(gs);
                 }
-                speed_right = bounded_speed((abs(ds) > (PID_MAX_DS) ? 0 : NORM_SPEED) + ds);
-                speed_left = bounded_speed((abs(ds) > (PID_MAX_DS) ? 0 : NORM_SPEED) - ds);
+                speed_right = bounded_speed((abs(ds) > (PID_MAX_DS) ? 0 : NORM_SPEED) - ds);
+                speed_left = bounded_speed((abs(ds) > (PID_MAX_DS) ? 0 : NORM_SPEED) + ds);
                 set_speed(speed_left, speed_right);
                 break;
 
@@ -182,8 +188,8 @@ void robot_loop() {
                 //this if is used to rotate the robot in front of a wall
                 if (current_wall == RED) {
                     if (counter < 16) {
-                        speed_left = bounded_speed(NORM_SPEED);
-                        speed_right = bounded_speed(-NORM_SPEED);
+                        speed_left = bounded_speed(-NORM_SPEED);
+                        speed_right = bounded_speed(NORM_SPEED);
                         counter++;
                     } else {
                         counter = 0;
@@ -191,8 +197,8 @@ void robot_loop() {
                     }
                 } else if (current_wall == BLUE) {
                     if (counter < 16) {
-                        speed_left = bounded_speed(-NORM_SPEED);
-                        speed_right = bounded_speed(NORM_SPEED);
+                        speed_left = bounded_speed(NORM_SPEED);
+                        speed_right = bounded_speed(-NORM_SPEED);
                         counter++;
                     } else {
                         counter = 0;
@@ -204,28 +210,22 @@ void robot_loop() {
                     switch (color()) {
                         case RED:
                             led_on(RED);
-                            printf("Wall is red\n");
                             current_wall = RED;
                             break;
                         case GREEN:
                             led_on(GREEN);
                             //if the robot is directly in front of a green wall
-                            if (prox >= MAX_PROX) {
-                                speed_left = 0;
-                                speed_right = 0;
-                            } else {
-                                STATE = FIND;
-                            }
+                            STATE = STOP;
+                            sent = send_id(id);
                             break;
                         case BLUE:
                             led_on(BLUE);
-                            printf("Wall is blue\n");
                             current_wall = BLUE;
                             break;
                         case EPUCK:
                             led_off();
-                            speed_left = 0;
-                            speed_right = 0;
+                            sent = send_id(id);
+                            STATE = STOP;
                             break;
                         case NONE:
                             led_on(NONE);
@@ -236,9 +236,9 @@ void robot_loop() {
                 }
                 set_speed(speed_left, speed_right);
                 break;
-                
+
             //stop when the e-puck sees a green wall or another e-puck
-            
+
 
             case AVOID:
                 //if the robot is back on a line
@@ -247,11 +247,11 @@ void robot_loop() {
                         line_crossed = 1;
                         //turn one direction or an other depending of the color
                         if (current_wall == RED) {
-                            speed_left = bounded_speed(NORM_SPEED);
-                            speed_right = bounded_speed(-NORM_SPEED);
-                        } else if (current_wall == BLUE) {
                             speed_left = bounded_speed(-NORM_SPEED);
                             speed_right = bounded_speed(NORM_SPEED);
+                        } else if (current_wall == BLUE) {
+                            speed_left = bounded_speed(NORM_SPEED);
+                            speed_right = bounded_speed(-NORM_SPEED);
                         }
                         counter++;
                     } else {
@@ -262,17 +262,32 @@ void robot_loop() {
                     }
                 } else {
                     if (current_wall == RED) {
-                        ds = pid_wall(prox_left);
-                        speed_right = (abs(ds) > 200 ? 0 : NORM_SPEED) - ds;
-                        speed_left = (abs(ds) > 200 ? 0 : NORM_SPEED) + ds;
-                    } else if (current_wall == BLUE) {
                         ds = pid_wall(prox_right);
                         speed_right = (abs(ds) > 200 ? 0 : NORM_SPEED) + ds;
                         speed_left = (abs(ds) > 200 ? 0 : NORM_SPEED) - ds;
+                    } else if (current_wall == BLUE) {
+                        ds = pid_wall(prox_left);
+                        speed_right = (abs(ds) > 200 ? 0 : NORM_SPEED) - ds;
+                        speed_left = (abs(ds) > 200 ? 0 : NORM_SPEED) + ds;
                     }
                 }
                 set_speed(bounded_speed(speed_left), bounded_speed(speed_right));
                 break;
+
+            case STOP:
+              set_speed(0, 0);
+              if (phase == 2){
+                if (prox < MAX_PROX) {
+                printf("Phase 2 est complete\n");
+                printf("Phase 3 begin\n");
+                led_off();
+                enable_led(1);
+                enable_led(2);
+                enable_led(3);
+                STATE = LINE;
+              }
+              
+              }
         }
 
     }
@@ -314,7 +329,10 @@ int color() {
             }
         }
     }
-    if (redpx > greenpx && redpx > bluepx) {
+    if (redpx > 1000 && bluepx > 1000 && greenpx > 1000) {
+        printf("%d %d %d\n", redpx, greenpx, bluepx);
+        return EPUCK;
+    }else if (redpx > greenpx && redpx > bluepx) {
         printf("%d %d %d\n", redpx, greenpx, bluepx);
         return RED;
     } else if (greenpx > redpx && greenpx > bluepx) {
@@ -323,40 +341,41 @@ int color() {
     } else if (bluepx > redpx && bluepx > greenpx) {
         printf("%d %d %d\n", redpx, greenpx, bluepx);
         return BLUE;
-    } else if (redpx > 1000 && bluepx > 1000 && greenpx > 1000) {
-        printf("%d %d %d\n", redpx, greenpx, bluepx);
-        return EPUCK;
     }
     return NONE;
 }
 
 void led_on(int color) {
     switch (color) {
-        case 1:
+        case RED:
             for (int i = 0; i < 4; i++) {
                 disable_rgbled(i);
                 enable_rgbled(i, 0xff0000);
                 disable_led(i);
             }
-            enable_led(3);
+            enable_led(0);
+            enable_led(1);
+            enable_led(2);
+
             break;
-        case 2:
+        case GREEN:
             for (int i = 0; i < 4; i++) {
                 disable_rgbled(i);
                 enable_rgbled(i, 0x00ff00);
                 disable_led(i);
             }
-            enable_led(2);
             break;
-        case 3:
+        case BLUE:
             for (int i = 0; i < 4; i++) {
                 disable_rgbled(i);
                 enable_rgbled(i, 0x0000ff);
                 disable_led(i);
             }
-            enable_led(1);
+            enable_led(0);
+            enable_led(2);
+            enable_led(3);
             break;
-        case 4:
+        case WHITE:
             enable_rgbled(0, 0x0000ff);
             enable_rgbled(1, 0x00ff00);
             enable_rgbled(2, 0xff0000);
@@ -369,6 +388,18 @@ void led_off() {
         disable_rgbled(i);
         disable_led(i);
     }
+}
+
+int send_id(int id){
+  sprintf(tmp, "%d", id);
+  send_msg(tmp);
+  return 1;
+}
+
+int send(char msg[]){
+  sprintf(tmp, "%s", msg);
+  send_msg(tmp);
+  return 1;
 }
 
 /*
@@ -388,15 +419,15 @@ int send(char msg[]){
 
 counteur arret au 2eme vert
 
-int greenwall = 0; (on rajoute ensuite dans green un greenwall ++) 
+int greenwall = 0; (on rajoute ensuite dans green un greenwall ++)
 
     while(greenwall == 2) {
-        stop; (ou set speed 0) 
+        stop; (ou set speed 0)
     }
-(while dans chaque autre cas) 
+(while dans chaque autre cas)
 
-senseur detecte qqch n etant aucun des murs devant (le premier robot à l arret)  se stop donc automatiquement  et ainsi fait sotp les 3 robots ensuite le while stop la simu pour le 2eme mur 
-color 
+senseur detecte qqch n etant aucun des murs devant (le premier robot à l arret)  se stop donc automatiquement  et ainsi fait sotp les 3 robots ensuite le while stop la simu pour le 2eme mur
+color
 
 
-*/ 
+*/
