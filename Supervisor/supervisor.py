@@ -86,7 +86,7 @@ def transform(rotation):
 
 ### Calculate the angle between the robot and the center of the detected group
 def centerMassdiff(center_x,center_y,robot_x, robot_y):
-    delta = (math.atan2((robot_y - center_y),(robot_x-center_x)))
+    delta = (math.atan2((center_y - robot_y ),(center_x - robot_x)))
     return f'{delta:.5f}'
 
 ### Calculate the difference in rotation between the target rotation and the current one
