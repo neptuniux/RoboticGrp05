@@ -75,28 +75,16 @@ void robot_loop() {
     /// And if there is adjustment to be done
     if(prox_right < MAX_PROX+25 && prox_left < MAX_PROX+25){
       if(rotation != 0){
-        if(rotation < 0){
-          change_rota_left = 1;
-          change_rota_right = -1;
-        } else if (rotation > 0){
-          change_rota_left = -1;
-          change_rota_right = 1;
-        }
+        change_rota_left = (rotation < 0) ? 1 : -1;
+        change_rota_right = (rotation < 0) ? -1 : 1;
       }else{
-        change_rota_left = 0;
-        change_rota_right = 0;
+        change_rota_left = change_rota_right = 0;
       }
       if(mass_center != 0){
-        if(mass_center < 0){
-          change_cntr_left = 1;
-          change_cntr_right = -1;
-        }else if(mass_center >0){
-          change_cntr_left = -1;
-          change_cntr_right = 1;
-        }
+        change_cntr_left = (mass_center < 0) ? 1 : -1;
+        change_cntr_right = (mass_center < 0) ? -1 : 1;
       } else{
-        change_cntr_left = 0;
-        change_cntr_right = 0;
+        change_cntr_left = change_cntr_right = 0;
       }
       // Set the speed as a compound of the adjustment from the rotation and center of mass
       speed_right = bounded_speed(speed_right +((K_ROTATION * change_rota_right + K_CENTER * change_cntr_right)/(K_ROTATION + K_CENTER)));
