@@ -38,8 +38,7 @@
 #define RED 1
 #define GREEN 2
 #define BLUE 3
-#define WHITE 4
-#define EPUCK 5
+#define EPUCK 4
 
 //define for communications
 /*number of robots on the field*/
@@ -57,7 +56,7 @@ char tmp[MSG_LENGTH];
 
 int color();
 
-void led_on(int), led_off(), init_rgbled();
+void led_on(int), led_off(), init_rgbled(), phase_led(int);
 
 
 double error_line = 0;
@@ -105,14 +104,13 @@ void robot_loop() {
     int id = get_robot_ID();
     short int IR_ground[GROUND_SENSORS_COUNT];
     short int prox_values[8];
-
+    
+    int ack = 0;
+    int phase = 0;
     int loop_counter = 0;
     int STATE = FIND;
-    int phase = 0;
-
     int counter = 0;
     int current_wall = NONE;
-
     int line_crossed = 0;
 
     double speed_right = 0;
@@ -124,18 +122,20 @@ void robot_loop() {
         //control that robot_count doesn't go over the array size
         if (robot_count >= NB_ROBOT) {
             robot_count = 0;
-            phase = 2;
        }
         receive_msg(rcv);
         int rcv_id = rcv[0] - 48;
         if (rcv_id <= NB_ROBOT) {
             robot[robot_count] = rcv_id;
             robot_count++;
-            printf("[0]:%d, [1]: %d, [2]: %d, count =%d\n",robot[0], robot[1], robot[2], robot_count);
+            ack++;
+            printf("[0]:%d, [1]: %d, [2]: %d, count =%d, %d\n",robot[0], robot[1], robot[2], robot_count, ack);
         } else if (sent == 1) {
             sent = 0;
             robot[robot_count] = id;
             robot_count++;
+            ack++;
+             printf("[0]:%d, [1]: %d, [2]: %d, count =%d, %d\n",robot[0], robot[1], robot[2], robot_count, ack);
         }
 
         double ds = 0;
@@ -154,7 +154,6 @@ void robot_loop() {
 
         switch (STATE) {
             case FIND:
-                printf("Robot %d enter Phase 1\n", id);
                 led_off();
                 if (gs < 350) {
                     STATE = LINE;
@@ -164,8 +163,6 @@ void robot_loop() {
                 break;
 
             case LINE:
-                
-                printf("Robot %d enter Phase 2\n", id);
                 enable_led(0);
                 if (prox >= MAX_PROX) {
                     STATE = WALL;
@@ -217,6 +214,9 @@ void robot_loop() {
                             //if the robot is directly in front of a green wall
                             STATE = STOP;
                             sent = send_id(id);
+                            if(phase == 3){
+                              phase_led(2);
+                            }
                             break;
                         case BLUE:
                             led_on(BLUE);
@@ -226,11 +226,12 @@ void robot_loop() {
                             led_off();
                             sent = send_id(id);
                             STATE = STOP;
+                            if(phase == 3){
+                              phase_led(3);
+                            }
                             break;
-                        case NONE:
-                            led_on(NONE);
-                            printf("Unknown\n");
-                            break;
+                        default:
+                          break;
 
                     }
                 }
@@ -276,17 +277,14 @@ void robot_loop() {
 
             case STOP:
               set_speed(0, 0);
-              if (phase == 2){
-                if (prox < MAX_PROX) {
-                printf("Phase 2 est complete\n");
-                printf("Phase 3 begin\n");
-                led_off();
-                enable_led(1);
-                enable_led(2);
-                enable_led(3);
-                STATE = LINE;
-              }
               
+              if (ack >= 3){
+                  phase_led(1);
+                if (prox < MAX_PROX/3) {
+                  STATE = LINE;
+                  phase = 3;
+                  sent = send_id(id);
+                }
               }
         }
 
@@ -329,7 +327,7 @@ int color() {
             }
         }
     }
-    if (redpx > 1000 && bluepx > 1000 && greenpx > 1000) {
+    if (redpx > 100 && bluepx > 100 && greenpx > 100) {
         printf("%d %d %d\n", redpx, greenpx, bluepx);
         return EPUCK;
     }else if (redpx > greenpx && redpx > bluepx) {
@@ -375,11 +373,6 @@ void led_on(int color) {
             enable_led(2);
             enable_led(3);
             break;
-        case WHITE:
-            enable_rgbled(0, 0x0000ff);
-            enable_rgbled(1, 0x00ff00);
-            enable_rgbled(2, 0xff0000);
-            enable_rgbled(3, 0x0000ff);
     }
 }
 
@@ -400,6 +393,27 @@ int send(char msg[]){
   sprintf(tmp, "%s", msg);
   send_msg(tmp);
   return 1;
+}
+void phase_led(int type) {
+  for (int i = 0; i < 4; i++) {
+    disable_led(i);
+   }
+   switch(type){
+     case 1 :
+       enable_led(1);
+       enable_led(2);
+       enable_led(3);
+       break;
+     case 2:
+       enable_led(0);
+       enable_led(1);
+       enable_led(3);
+       break;
+     case 3:
+       enable_led(1);
+       enable_led(3);
+       break;
+   }
 }
 
 /*
