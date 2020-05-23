@@ -112,7 +112,6 @@ void robot_loop() {
     int counter = 0;
     int current_wall = NONE;
     int line_crossed = 0;
-    int estop = 0;
 
     double speed_right = 0;
     double speed_left = 0;
@@ -277,8 +276,7 @@ void robot_loop() {
                 break;
 
             case STOP:
-              set_speed(0, 0);
-              estop ++; 
+              set_speed(0, 0); 
               if (ack >= 3){
                   phase_led(1);
                 if (prox < MAX_PROX/3) {
@@ -287,8 +285,6 @@ void robot_loop() {
                   sent = send_id(id);
                 }
               }
-              if (estop = 2){
-              led_phase(2);
         }
 
     }
